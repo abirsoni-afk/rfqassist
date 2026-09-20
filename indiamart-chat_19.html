@@ -1,0 +1,2315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sourcing assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy: #2e3192;
+    --navy-soft: hsl(239,52%,32%);
+    --paper: hsl(220,20%,97%);
+    --paper-dim: hsl(220,14%,92%);
+    --pill-grey: hsl(220,18%,96%);
+    --brass: #1d8480;
+    --brass-dark: hsl(178,63%,25%);
+    --verified: #1a9e56;
+    --ink: hsl(220,14%,10%);
+    --ink-soft: hsl(220,6%,46%);
+    --placeholder: hsl(220,8%,72%);
+    --line: hsl(220,10%,84%);
+    --white: #FFFFFF;
+    --bubble-ai: #FFFFFF;
+    --bubble-user: rgb(216, 239, 231);
+    --bubble-user-ink: var(--ink);
+    --shadow-card: 0 4px 12px -2px rgba(30,42,58,0.08);
+    --shadow-subtle: 0 1px 3px 0 rgba(30,42,58,0.06);
+    --shadow-modal: 0 12px 32px -4px rgba(30,42,58,0.12);
+    --badge-star: #eeb160;
+    --badge-industry: #ca6c42;
+    --badge-leading: #8ab0df;
+    --radius-btn: 8px;
+    --radius-card: 12px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --navy: #3b3fb0; --navy-soft: #4c50c4;
+      --paper: #14120F; --paper-dim: #1C1A15; --pill-grey: #221F19;
+      --ink: #F1ECE1; --ink-soft: #B7B0A0;
+      --line: #35322A; --white: #201E19;
+      --bubble-ai: #201E19; --bubble-user: #3b3fb0; --bubble-user-ink: #F1ECE1;
+      --shadow-card: 0 4px 12px -2px rgba(0,0,0,0.35);
+      --shadow-subtle: 0 1px 3px 0 rgba(0,0,0,0.3); --shadow-modal: 0 12px 32px -4px rgba(0,0,0,0.5);
+    }
+  }
+  :root[data-theme="dark"]{
+    --navy: #3b3fb0; --navy-soft: #4c50c4;
+    --paper: #14120F; --paper-dim: #1C1A15; --pill-grey: #221F19;
+    --ink: #F1ECE1; --ink-soft: #B7B0A0;
+    --line: #35322A; --white: #201E19;
+    --bubble-ai: #201E19; --bubble-user: #3b3fb0; --bubble-user-ink: #F1ECE1;
+    --shadow-card: 0 4px 12px -2px rgba(0,0,0,0.35);
+    --shadow-subtle: 0 1px 3px 0 rgba(0,0,0,0.3); --shadow-modal: 0 12px 32px -4px rgba(0,0,0,0.5);
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; height:100%; }
+  body{
+    background: var(--paper);
+    color: var(--ink);
+    font-family:'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .headline-font{ font-family:'Inter', -apple-system, BlinkMacSystemFont, sans-serif; font-weight:700; letter-spacing:-0.01em; }
+
+  .app{
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    height: calc(var(--app-vh, 1vh) * 100);
+    display:flex;
+    flex-direction:column;
+    background: var(--paper);
+  }
+  .app.landing{
+    background: linear-gradient(180deg, #EAF2ED 0%, var(--paper) 55%);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]) .app.landing{
+      background: linear-gradient(180deg, #17241E 0%, var(--paper) 55%);
+    }
+  }
+  :root[data-theme="dark"] .app.landing{
+    background: linear-gradient(180deg, #17241E 0%, var(--paper) 55%);
+  }
+
+  /* Content column: full-bleed on phones, a centered reading-width column on
+     wider viewports — like a real responsive site, not a phone card floating
+     on a desktop background. */
+  .landing-wrap, .feed, .composer, .qa-panel{
+    width: 100%;
+    max-width: 640px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  @media (min-width: 768px){
+    .landing-wrap, .feed, .composer, .qa-panel{
+      max-width: 720px;
+    }
+    header.topbar{
+      background: var(--card);
+      box-shadow: none;
+      border-bottom: 1px solid var(--line);
+    }
+    header.topbar::after{ display:none; }
+    .menu-btn{
+      background: var(--paper-dim);
+      color: var(--ink);
+    }
+    .menu-btn:hover{ background: var(--line); }
+    .brandmark span{ color: var(--ink); }
+    .header-action{
+      background: var(--paper-dim);
+      color: var(--ink);
+    }
+    .header-action:hover{ background: var(--line); }
+    .qa-panel{
+      border-radius: var(--radius-card);
+      border: 1px solid var(--line);
+      border-top: 1px solid var(--line);
+      box-shadow: var(--shadow-card);
+      margin-bottom: 18px;
+    }
+    .composer{
+      padding-bottom: 20px;
+    }
+  }
+
+  /* ---------- header ---------- */
+  header.topbar{
+    display:grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items:center;
+    padding: 14px 16px;
+    flex-shrink:0;
+    background: var(--brass);
+    position:relative;
+  }
+  .header-left{ display:flex; align-items:center; grid-column:1; justify-self:start; }
+  .menu-btn{
+    width: 36px; height:36px;
+    border-radius:50%;
+    background: rgba(255,255,255,0.16);
+    border: none;
+    display:flex; align-items:center; justify-content:center;
+    color: var(--white);
+    cursor:pointer;
+    flex-shrink:0;
+  }
+  .menu-btn:hover{ background: rgba(255,255,255,0.26); }
+  .menu-btn svg{ width:16px; height:16px; }
+  .brandmark{ display:flex; align-items:center; grid-column:2; justify-self:center; }
+  .brandmark span{ font-weight:700; font-size:16px; letter-spacing:-0.01em; color: var(--white); }
+
+  .header-action{
+    border:none;
+    border-radius: var(--radius-btn);
+    font-family:inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 8px 14px;
+    cursor:pointer;
+    background: rgba(255,255,255,0.16);
+    color: var(--white);
+    grid-column:3;
+    justify-self:end;
+  }
+  .header-action:hover{ background: rgba(255,255,255,0.26); }
+  .header-action[hidden]{ display:none; visibility:hidden; }
+
+  /* ---------- landing / empty state ---------- */
+  .landing-wrap{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding: 12px 20px 8px;
+    overflow-y:auto;
+    min-height:0;
+  }
+  .landing-wrap[hidden], .feed[hidden]{ display:none !important; }
+
+  .landing-hero{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    text-align:center;
+    margin-bottom: 30px;
+  }
+
+  .landing-badge{
+    width: 60px; height:60px;
+    border-radius: 50%;
+    background: var(--white);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow-card);
+    display:flex; align-items:center; justify-content:center;
+    margin-bottom: 18px;
+    flex-shrink:0;
+  }
+  .landing-badge svg{ width:27px; height:27px; color: var(--brass-dark); }
+  .sparkle-icon{
+    transform-origin: 50% 50%;
+    animation: sparkle-twinkle 2.4s ease-in-out infinite;
+  }
+  @keyframes sparkle-twinkle{
+    0%, 100%{ transform: scale(1) rotate(0deg); opacity: 1; }
+    50%{ transform: scale(1.18) rotate(10deg); opacity: 0.8; }
+  }
+  .landing-title{
+    font-family:'Fraunces', serif;
+    font-size: clamp(23px, 6vw, 28px);
+    font-weight: 600;
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+  }
+  .landing-sub{
+    font-size: 14.5px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+    max-width: 30ch;
+    margin: 0 0 22px;
+  }
+  .landing-pills{
+    display:flex;
+    flex-wrap:nowrap;
+    justify-content:flex-start;
+    gap: 9px;
+    margin-bottom: 14px;
+    overflow-x:auto;
+    max-width:100%;
+    padding: 2px 2px 4px;
+    scrollbar-width:none;
+  }
+  .landing-pills::-webkit-scrollbar{ display:none; }
+  .landing-pill{
+    border: 1px solid var(--line);
+    background: var(--white);
+    color: var(--ink);
+    font-family:inherit;
+    font-size: 13.5px;
+    font-weight: 500;
+    padding: 10px 16px;
+    border-radius: 999px;
+    cursor:pointer;
+    white-space:nowrap;
+    flex-shrink:0;
+  }
+  .landing-pill:hover{ border-color: var(--brass); background: var(--paper-dim); }
+  .app:not(.landing) .landing-pills{ display:none; }
+
+  .landing-input-area{
+    width:100%;
+    max-width: 100%;
+    flex-shrink:0;
+  }
+
+  /* ---------- composer card (shared: landing + chat) ---------- */
+  .composer{
+    padding: 0 20px 14px;
+    flex-shrink:0;
+  }
+  .app:not(.landing) .composer{ padding-top:10px; border-top:1px solid var(--line); }
+  .composer-card{
+    background: var(--white);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    padding: 14px 14px 8px;
+  }
+  .composer-card input{
+    width:100%;
+    border:none;
+    outline:none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 15.5px;
+    color: var(--ink);
+    padding: 2px 2px 12px;
+  }
+  .composer-card input::placeholder{ color: var(--placeholder); }
+  .composer-card input:disabled{ color: var(--ink-soft); }
+
+  .composer-toolbar{
+    display:flex;
+    align-items:center;
+    gap: 8px;
+  }
+  .tool-btn{
+    width: 32px; height:32px;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: var(--white);
+    display:flex; align-items:center; justify-content:center;
+    color: var(--ink-soft);
+    cursor:pointer;
+    flex-shrink:0;
+  }
+  .tool-btn:hover{ border-color: var(--brass); color: var(--ink); }
+  .tool-btn svg{ width:15px; height:15px; }
+  .toolbar-spacer{ flex:1; }
+  .send-btn{
+    width: 32px; height:32px;
+    border-radius: 50%;
+    border: none;
+    background: var(--paper-dim);
+    color: var(--ink-soft);
+    display:flex; align-items:center; justify-content:center;
+    cursor:not-allowed;
+    flex-shrink:0;
+  }
+  .send-btn svg{ width:15px; height:15px; }
+  .send-btn.has-text{
+    background: var(--brass);
+    color: var(--white);
+    cursor:pointer;
+  }
+  .send-btn.has-text:hover{ background: var(--brass-dark); }
+
+  ::selection{ background: var(--brass); color: var(--white); }
+
+  /* ---------- chat feed ---------- */
+  .feed{
+    flex:1;
+    overflow-y:auto;
+    padding: 22px 20px 12px;
+    display:flex;
+    flex-direction:column;
+    gap: 14px;
+    min-height:0;
+  }
+  .row{ display:flex; gap:10px; max-width:100%; }
+  .row.from-ai{ justify-content:flex-start; }
+  .row.from-user{ justify-content:flex-end; }
+
+  .avatar{
+    width: 28px; height:28px; border-radius:50%;
+    background: var(--white);
+    border: 1px solid var(--line);
+    flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    margin-top: 2px;
+    overflow:hidden;
+  }
+  .avatar img{ width:100%; height:100%; object-fit:contain; padding:4px; box-sizing:border-box; background:var(--white); }
+
+  .bubble-stack{ display:flex; flex-direction:column; gap:8px; max-width: 82%; }
+  .row.from-user .bubble-stack{ align-items:flex-end; }
+
+  .bubble{
+    padding: 12px 15px;
+    border-radius: 16px;
+    font-size: 14.5px;
+    line-height: 1.5;
+  }
+  .row.from-ai .bubble{
+    background: var(--bubble-ai);
+    border: 1px solid var(--line);
+    border-top-left-radius: 4px;
+    color: var(--ink);
+  }
+  .row.from-user .bubble{
+    background: var(--bubble-user);
+    color: var(--bubble-user-ink);
+    border-top-right-radius: 4px;
+  }
+
+  /* ---------- requirement summary card (buyer bubble) ---------- */
+  .req-card-bubble{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    text-align:center;
+    padding: 16px 18px;
+    min-width: 220px;
+  }
+  .req-card-photo{
+    width: 52px; height:52px;
+    border-radius:50%;
+    background: color-mix(in srgb, var(--bubble-user-ink) 10%, transparent);
+    color: var(--bubble-user-ink);
+    display:flex; align-items:center; justify-content:center;
+    margin-bottom: 10px;
+    flex-shrink:0;
+  }
+  .req-card-photo svg{ width:22px; height:22px; }
+  .req-card-name{
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--bubble-user-ink);
+    margin-bottom: 10px;
+  }
+  .req-card-specs{
+    width:100%;
+    display:flex;
+    flex-direction:column;
+    gap: 7px;
+    border-top: 1px solid color-mix(in srgb, var(--bubble-user-ink) 18%, transparent);
+    padding-top: 10px;
+  }
+  .req-card-specs:empty{
+    border-top: none;
+    padding-top: 0;
+  }
+  .req-card-spec{
+    display:flex;
+    justify-content:space-between;
+    gap: 12px;
+    font-size: 12.5px;
+    color: var(--bubble-user-ink);
+  }
+  .req-card-spec .k{ color: color-mix(in srgb, var(--bubble-user-ink) 65%, transparent); }
+  .req-card-spec .v{ font-weight:600; text-align:right; }
+
+  .typing-bubble{
+    display:flex; gap:4px; align-items:center;
+    padding: 14px 16px;
+  }
+  .typing-bubble i{
+    width:6px; height:6px; border-radius:50%;
+    background: var(--ink-soft);
+    display:block;
+  }
+
+  /* ---------- multi-step question panel (bottom sheet) ---------- */
+  .qa-panel{
+    background: var(--white);
+    border-top: 1px solid var(--line);
+    border-radius: var(--radius-card) var(--radius-card) 0 0;
+    box-shadow: 0 -4px 20px -6px rgba(30,42,58,0.14);
+    flex-shrink:0;
+    height: min(72vh, 480px);
+    display:flex;
+    flex-direction:column;
+  }
+  .qa-panel[hidden]{ display:none !important; }
+  .qa-panel-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding: 16px 18px 0;
+    flex-shrink:0;
+  }
+  .qa-panel-title{
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .qa-panel-title span{ color: var(--ink-soft); font-weight: 500; font-size: 12.5px; }
+  .qa-panel-close{
+    width: 28px; height:28px;
+    border-radius:50%;
+    border:none;
+    background: var(--paper-dim);
+    color: var(--ink-soft);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    flex-shrink:0;
+  }
+  .qa-panel-close svg{ width:13px; height:13px; }
+  .qa-progress-track{
+    height: 3px;
+    background: var(--paper-dim);
+    margin: 12px 18px 0;
+    border-radius: 3px;
+    overflow:hidden;
+    flex-shrink:0;
+  }
+  .qa-progress-fill{
+    height:100%;
+    background: var(--brass);
+    width: 33%;
+  }
+  .qa-panel-body{
+    padding: 16px 18px 4px;
+    overflow-y:auto;
+    flex: 1;
+    min-height: 0;
+  }
+  .qa-panel-label{
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ink-soft);
+    margin-bottom: 4px;
+  }
+  .qa-panel-question{
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 16px;
+    line-height:1.35;
+  }
+  .qa-panel-question:empty{ display:none; }
+  /* when there's no separate question sentence, the spec label itself becomes the heading */
+  .qa-panel-label:has(+ .qa-panel-question:empty){
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 16px;
+  }
+  .qa-panel-options{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .qa-option-card{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    text-align:left;
+    width:100%;
+    background: var(--pill-grey);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 11px 12px;
+    cursor:pointer;
+    font-family: inherit;
+    min-width: 0;
+  }
+  .qa-option-card.selected{
+    border-color: var(--brass);
+    background: color-mix(in srgb, var(--brass) 9%, var(--pill-grey));
+  }
+  .qa-option-radio{
+    width: 18px; height:18px;
+    border-radius:50%;
+    border: 1.5px solid var(--line);
+    background: var(--white);
+    flex-shrink:0;
+    position:relative;
+  }
+  .qa-option-card.selected .qa-option-radio{
+    border-color: var(--brass);
+  }
+  .qa-option-card.selected .qa-option-radio::after{
+    content:"";
+    position:absolute;
+    inset: 3px;
+    border-radius:50%;
+    background: var(--brass);
+  }
+  .qa-option-title{
+    font-weight:500;
+    font-size:13.5px;
+    color: var(--ink);
+    min-width:0;
+    overflow-wrap: break-word;
+  }
+
+  .qa-qty-row{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap: 10px;
+  }
+  .qa-qty-input{
+    flex: 1 1 120px;
+    min-width: 100px;
+    border: 1.5px solid var(--line);
+    border-radius: var(--radius-card);
+    padding: 13px 14px;
+    font-family: inherit;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--ink);
+    background: var(--white);
+    outline:none;
+  }
+  .qa-qty-input::placeholder{ color: var(--placeholder); font-weight: 500; }
+  .qa-qty-input:focus{ border-color: var(--brass); }
+  .qa-unit-pills{
+    display:flex;
+    flex-wrap:wrap;
+    gap: 8px;
+  }
+  .qa-unit-pill{
+    border: 1.5px solid var(--line);
+    background: var(--pill-grey);
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 500;
+    padding: 9px 16px;
+    border-radius: 999px;
+    cursor:pointer;
+  }
+  .qa-unit-pill.selected{
+    border-color: var(--brass);
+    background: color-mix(in srgb, var(--brass) 12%, var(--pill-grey));
+    color: var(--brass-dark);
+    font-weight: 600;
+  }
+  .qa-panel-footer{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding: 14px 18px;
+    flex-shrink:0;
+  }
+  .qa-prev-link{
+    background:none;
+    border:none;
+    color: var(--ink-soft);
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 500;
+    cursor:pointer;
+    padding: 8px 4px;
+  }
+  .qa-prev-link:hover{ color: var(--ink); }
+  .qa-prev-link[hidden]{ display:none; }
+  .qa-next-btn{
+    background: var(--brass);
+    color: var(--white);
+    border: none;
+    border-radius: 999px;
+    padding: 10px 24px;
+    font-family: inherit;
+    font-weight:600;
+    font-size: 13.5px;
+    cursor:pointer;
+    margin-left: auto;
+  }
+  .qa-next-btn:hover{ background: var(--brass-dark); }
+  .qa-next-btn:disabled{
+    background: var(--paper-dim);
+    color: var(--ink-soft);
+    cursor:not-allowed;
+  }
+
+  .refine-inline{ margin-left: 38px; }
+  .refine-inline button{
+    background:none; border:1px solid var(--line); border-radius: var(--radius-btn);
+    padding: 9px 16px; font-family:inherit; font-size:12.5px; color:var(--ink-soft); cursor:pointer;
+  }
+  .refine-inline button:hover{ border-color: var(--brass); color: var(--ink); }
+
+  /* ---------- search loading card ---------- */
+  .search-loading-card{
+    max-width: 82%;
+    margin-left: 38px;
+    background: var(--bubble-ai);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 18px 20px;
+    text-align:left;
+  }
+  .loading-top-row{
+    display:flex;
+    align-items:center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .loading-visual{
+    width: 42px; height:42px;
+    flex-shrink:0;
+    position:relative;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .loading-ring{
+    position:absolute;
+    inset:0;
+    border: 3px solid var(--paper-dim);
+    border-top-color: var(--brass);
+    border-radius: 50%;
+    animation: loading-spin 0.85s linear infinite;
+  }
+  .loading-visual svg{
+    width: 18px; height:18px;
+    color: var(--brass-dark);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+  .loading-icon-pop{
+    animation: loading-icon-pop 0.35s ease;
+  }
+  @keyframes loading-spin{ to{ transform: rotate(360deg); } }
+  @keyframes loading-icon-pop{
+    0%{ transform: scale(0.5); opacity:0; }
+    60%{ transform: scale(1.15); opacity:1; }
+    100%{ transform: scale(1); opacity:1; }
+  }
+  .search-loading-title{
+    font-size: 14.5px;
+    font-weight: 600;
+    color: var(--ink);
+    text-align:left;
+    min-height: 20px;
+    transition: opacity 0.25s ease;
+  }
+  .loading-steps{
+    display:flex;
+    gap: 6px;
+  }
+  .loading-step-dot{
+    height: 4px;
+    flex: 1;
+    border-radius: 2px;
+    background: var(--paper-dim);
+    overflow:hidden;
+  }
+  .loading-step-dot i{
+    display:block;
+    height:100%;
+    width:0%;
+    background: var(--brass);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+  }
+  .loading-step-dot.done i{ width:100%; }
+  .loading-step-dot.active i{ width:100%; animation: loading-step-fill 2.2s linear; }
+  @keyframes loading-step-fill{ from{ width:0%; } to{ width:100%; } }
+
+  /* ---------- error card ---------- */
+  .search-error-card{
+    max-width: 82%;
+    margin-left: 38px;
+    background: var(--bubble-ai);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 16px 18px;
+  }
+  .search-error-text{
+    font-size: 13.5px;
+    color: var(--ink);
+    margin-bottom: 12px;
+  }
+  .search-retry-btn{
+    background: var(--paper-dim);
+    color: var(--ink);
+    border: none;
+    border-radius: var(--radius-btn);
+    padding: 9px 18px;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .search-retry-btn:hover{ background: var(--line); }
+
+  /* ---------- seller carousel ---------- */
+  .seller-carousel-wrap{ width: 100%; margin-bottom: 4px; }
+  .seller-carousel-header{
+    margin: 4px 0 12px 38px;
+    padding-right: 20px;
+    text-align: left;
+  }
+  .seller-carousel-eyebrow{
+    display:flex;
+    align-items:center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--brass-dark);
+    margin-bottom: 4px;
+  }
+  .seller-carousel-eyebrow svg{ width:13px; height:13px; }
+  .seller-carousel-title{
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .seller-carousel{
+    display:flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding: 2px 20px 10px 38px;
+    scroll-snap-type: x proximity;
+  }
+  .seller-carousel::-webkit-scrollbar{ height: 6px; }
+  .seller-carousel::-webkit-scrollbar-thumb{ background: var(--line); border-radius: 3px; }
+  .seller-card-v2{
+    flex: 0 0 auto;
+    width: 220px;
+    height: 434px;
+    scroll-snap-align: start;
+    background: var(--white);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+    display:flex;
+    flex-direction:column;
+  }
+  .seller-card-photo{
+    position:relative;
+    width: 220px;
+    height: 220px;
+    flex-shrink: 0;
+    background: var(--white);
+    display:flex; align-items:center; justify-content:center;
+    border-bottom: 1px solid var(--line);
+  }
+  .seller-card-photo img{
+    width:100%; height:100%;
+    object-fit: contain;
+    background: var(--white);
+    padding: 12px;
+    box-sizing: border-box;
+  }
+  .seller-card-badge{
+    position:absolute; top:8px; left:8px;
+    background: linear-gradient(135deg, var(--badge-star), #d99a48);
+    color: #4a3006;
+    font-size: 10px;
+    font-weight:700;
+    padding: 3px 9px;
+    border-radius: 999px;
+    box-shadow: 0 1px 3px 0 rgba(30,42,58,0.15);
+  }
+  .seller-card-body{
+    padding: 14px 16px 16px;
+    display:flex;
+    flex-direction:column;
+    gap: 5px;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .seller-card-name{
+    font-size: 15px;
+    font-weight:700;
+    color: var(--ink);
+    line-height:1.45;
+    padding-top: 1px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .seller-card-price{
+    font-size: 14px;
+    font-weight:700;
+    color: var(--navy);
+  }
+  .seller-card-meta-row{
+    display:flex;
+    align-items:center;
+    gap: 5px;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+  }
+  .seller-card-meta-row svg{ width:11px; height:11px; flex-shrink:0; }
+  .seller-card-badges{
+    display:flex;
+    flex-wrap:wrap;
+    gap: 5px;
+    margin-top: 3px;
+  }
+  .seller-card-tag{
+    font-size: 10px;
+    font-weight:600;
+    padding: 3px 7px;
+    border-radius: var(--radius-btn);
+    display:inline-flex;
+    align-items:center;
+    gap:3px;
+  }
+  .seller-card-tag.gst{ background: color-mix(in srgb, var(--verified) 14%, transparent); color: var(--verified); }
+  .seller-card-tag.trust{ background: color-mix(in srgb, var(--badge-industry) 16%, transparent); color: var(--badge-industry); }
+  .seller-card-tag.protected{ background: color-mix(in srgb, var(--navy) 12%, transparent); color: var(--navy); }
+  .seller-card-rating{
+    font-size: 12px;
+    font-weight:600;
+    color: var(--ink);
+    margin-top: 2px;
+  }
+  .seller-card-rating span{ font-weight:400; color: var(--ink-soft); }
+
+  .seller-card-footer{
+    display:flex;
+    gap: 6px;
+    padding: 0 16px 16px;
+    flex-shrink: 0;
+  }
+  .seller-card-cta{
+    flex:1;
+    min-width:0;
+    border-radius: var(--radius-btn);
+    padding: 9px 6px;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 11.5px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap: 4px;
+    white-space:nowrap;
+  }
+  .seller-card-cta svg{ width:12px; height:12px; flex-shrink:0; }
+  .seller-card-cta.primary{
+    background: var(--brass);
+    color: var(--white);
+    border: none;
+  }
+  .seller-card-cta.primary:hover{ background: var(--brass-dark); }
+  .seller-card-cta.secondary{
+    background: var(--paper-dim);
+    color: var(--ink);
+    border: 1px solid var(--line);
+  }
+  .seller-card-cta.secondary:hover{ border-color: var(--brass); }
+
+  .feed::-webkit-scrollbar{ width: 6px; }
+  .feed::-webkit-scrollbar-thumb{ background: var(--line); border-radius: 3px; }
+
+  /* ---------- results feedback (thumbs up/down) ---------- */
+  .feedback-bar{
+    width: 100%;
+    max-width: 640px;
+    margin-left: auto;
+    margin-right: auto;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding: 16px 20px;
+    flex-shrink:0;
+  }
+  .feedback-bar[hidden]{ display:none !important; }
+  .app:not(.landing) .feedback-bar{ border-top: 1px solid var(--line); }
+  @media (min-width: 768px){ .feedback-bar{ max-width: 720px; } }
+  .feedback-text{
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .feedback-actions{
+    display:flex;
+    gap: 8px;
+    flex-shrink:0;
+  }
+  .feedback-btn{
+    width: 38px; height:38px;
+    border-radius:50%;
+    border: 1px solid var(--line);
+    background: var(--white);
+    color: var(--ink-soft);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+  }
+  .feedback-btn svg{ width:16px; height:16px; }
+  .feedback-btn:hover{ border-color: var(--brass); color: var(--ink); }
+  .feedback-btn:disabled{ opacity: 0.4; cursor:default; }
+  .feedback-btn:disabled:hover{ border-color: var(--line); color: var(--ink-soft); }
+  .feedback-btn.picked-up{ border-color: var(--verified); background: color-mix(in srgb, var(--verified) 12%, transparent); color: var(--verified); }
+  .feedback-btn.picked-down{ border-color: var(--brass); background: color-mix(in srgb, var(--brass) 12%, transparent); color: var(--brass-dark); }
+
+  .feedback-popup-overlay{
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    background: rgba(15,23,42,0.42);
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+  }
+  .feedback-popup-overlay[hidden]{ display:none !important; }
+  @media (min-width: 768px){
+    .feedback-popup-overlay{ align-items:center; }
+  }
+  .feedback-popup{
+    width: 100%;
+    max-width: 480px;
+    background: var(--white);
+    border-radius: var(--radius-card) var(--radius-card) 0 0;
+    padding: 20px;
+    box-shadow: var(--shadow-card);
+  }
+  @media (min-width: 768px){
+    .feedback-popup{ border-radius: var(--radius-card); margin: 0 20px; }
+  }
+  .feedback-popup-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom: 16px;
+  }
+  .feedback-popup-title{
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .feedback-popup-close{
+    width: 28px; height:28px;
+    border-radius:50%;
+    border:none;
+    background: var(--paper-dim);
+    color: var(--ink-soft);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    flex-shrink:0;
+  }
+  .feedback-popup-close svg{ width:13px; height:13px; }
+  .feedback-popup-chips{
+    display:flex;
+    flex-wrap:wrap;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .feedback-chip{
+    border: 1.5px solid var(--line);
+    background: var(--pill-grey);
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 9px 14px;
+    border-radius: 999px;
+    cursor:pointer;
+  }
+  .feedback-chip.selected{
+    border-color: var(--brass);
+    background: color-mix(in srgb, var(--brass) 12%, var(--pill-grey));
+    color: var(--brass-dark);
+    font-weight: 600;
+  }
+  .feedback-popup-submit{
+    width:100%;
+    background: var(--brass);
+    color: var(--white);
+    border:none;
+    border-radius: 999px;
+    padding: 12px;
+    font-family: inherit;
+    font-weight:600;
+    font-size: 14px;
+    cursor:pointer;
+  }
+  .feedback-popup-submit:hover{ background: var(--brass-dark); }
+  .feedback-popup-submit:disabled{ background: var(--paper-dim); color: var(--ink-soft); cursor:not-allowed; }
+
+  /* ---------- mobile fullscreen search overlay ---------- */
+  .search-overlay{
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: var(--paper);
+    display:flex;
+    flex-direction:column;
+  }
+  .search-overlay[hidden]{ display:none !important; }
+  .search-overlay-top{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--line);
+    flex-shrink:0;
+    background: var(--card);
+  }
+  .overlay-back{
+    width: 36px; height:36px;
+    border-radius: 50%;
+    background: var(--paper-dim);
+    border: none;
+    display:flex; align-items:center; justify-content:center;
+    color: var(--ink);
+    cursor:pointer;
+    flex-shrink:0;
+  }
+  .overlay-back svg{ width:16px; height:16px; }
+  .search-overlay-top input{
+    flex:1;
+    min-width:0;
+    border:none;
+    outline:none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 16px;
+    color: var(--ink);
+    padding: 10px 0;
+  }
+  .search-overlay-top input::placeholder{ color: var(--placeholder); }
+  .overlay-go{
+    width: 36px; height:36px;
+    border-radius: 50%;
+    border: none;
+    background: var(--paper-dim);
+    color: var(--ink-soft);
+    display:flex; align-items:center; justify-content:center;
+    cursor:not-allowed;
+    flex-shrink:0;
+  }
+  .overlay-go svg{ width:16px; height:16px; }
+  .overlay-go:not(:disabled){
+    background: var(--brass);
+    color: var(--white);
+    cursor:pointer;
+  }
+  .overlay-go:not(:disabled):hover{ background: var(--brass-dark); }
+
+  .search-suggestions{
+    flex:1;
+    overflow-y:auto;
+    padding: 6px 0 16px;
+  }
+  .suggestion-label{
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 14px 20px 8px;
+  }
+  .suggestion-row{
+    width:100%;
+    display:flex;
+    align-items:center;
+    gap: 12px;
+    padding: 13px 20px;
+    background: transparent;
+    border:none;
+    text-align:left;
+    font-family: inherit;
+    font-size: 14.5px;
+    color: var(--ink);
+    cursor:pointer;
+  }
+  .suggestion-row:active{ background: var(--paper-dim); }
+  .suggestion-row .suggestion-icon{
+    width:30px; height:30px;
+    border-radius:50%;
+    background: var(--paper-dim);
+    display:flex; align-items:center; justify-content:center;
+    color: var(--ink-soft);
+    flex-shrink:0;
+  }
+  .suggestion-row .suggestion-icon svg{ width:14px; height:14px; }
+  .suggestion-empty{
+    padding: 24px 20px;
+    color: var(--ink-soft);
+    font-size: 13.5px;
+    text-align:center;
+  }
+</style>
+</head>
+<body>
+
+<div class="app landing" id="appShell">
+  <header class="topbar">
+    <div class="header-left">
+      <button class="menu-btn" type="button" aria-label="Menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+      </button>
+    </div>
+    <div class="brandmark">
+      <span>indiaMART</span>
+    </div>
+    <button class="header-action" id="headerAction" type="button" hidden>New search</button>
+  </header>
+
+  <div class="landing-wrap" id="landingWrap">
+    <div class="landing-hero" id="landingHero">
+      <div class="landing-badge">
+        <svg class="sparkle-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4"/><path d="M22 4h-4"/><circle cx="4" cy="20" r="2"/></svg>
+      </div>
+      <h1 class="landing-title headline-font">Hi Abir, let's start sourcing</h1>
+    </div>
+  </div>
+
+  <div class="feed" id="feed" hidden></div>
+
+  <div class="composer" id="composerWrap">
+    <div class="landing-pills" id="landingPills">
+      <button class="landing-pill" data-q="Raw materials for my factory">Raw materials</button>
+      <button class="landing-pill" data-q="Industrial machinery">Machinery</button>
+      <button class="landing-pill" data-q="Custom manufacturing for a new product">Custom manufacturing</button>
+    </div>
+    <div class="composer-card">
+      <input type="text" id="composerInput" placeholder="Tell us what to need to source" autocomplete="off">
+      <div class="composer-toolbar">
+        <button class="tool-btn" aria-label="Attach" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 13.5L12.9 21a5 5 0 0 1-7-7l8-8a3.5 3.5 0 0 1 5 5l-8 8a2 2 0 1 1-3-3l7-7"/></svg>
+        </button>
+        <div class="toolbar-spacer"></div>
+        <button class="send-btn" id="sendBtn" aria-label="Send" type="button" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="qa-panel" id="qaPanel" hidden>
+    <div class="qa-panel-head">
+      <div class="qa-panel-title">Help us find your best match <span id="qaPanelCount">· Question 1 of 3</span></div>
+      <button class="qa-panel-close" id="qaPanelClose" type="button" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="qa-progress-track"><div class="qa-progress-fill" id="qaProgressFill"></div></div>
+    <div class="qa-panel-body" id="qaPanelBody">
+      <div class="qa-panel-label" id="qaPanelLabel">—</div>
+      <div class="qa-panel-question" id="qaPanelQuestion">—</div>
+      <div class="qa-panel-options" id="qaPanelOptions"></div>
+    </div>
+    <div class="qa-panel-footer">
+      <button class="qa-prev-link" id="qaPrevBtn" type="button" hidden>‹ Previous</button>
+      <button class="qa-next-btn" id="qaNextBtn" type="button">Next</button>
+    </div>
+  </div>
+
+  <div class="feedback-bar" id="feedbackBar" hidden>
+    <div class="feedback-text" id="feedbackText">Are the results relevant?</div>
+    <div class="feedback-actions" id="feedbackActions">
+      <button class="feedback-btn" id="feedbackUp" type="button" aria-label="Relevant">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z"/></svg>
+      </button>
+      <button class="feedback-btn" id="feedbackDown" type="button" aria-label="Not relevant">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 14V2"/><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22h0a3.13 3.13 0 0 1-3-3.88Z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="feedback-popup-overlay" id="feedbackPopupOverlay" hidden>
+    <div class="feedback-popup">
+      <div class="feedback-popup-head">
+        <div class="feedback-popup-title">What can be done better?</div>
+        <button class="feedback-popup-close" id="feedbackPopupClose" type="button" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="feedback-popup-chips" id="feedbackPopupChips"></div>
+      <button class="feedback-popup-submit" id="feedbackPopupSubmit" type="button" disabled>Submit feedback</button>
+    </div>
+  </div>
+
+  <div class="search-overlay" id="searchOverlay" hidden>
+    <div class="search-overlay-top">
+      <button class="overlay-back" id="overlayBack" type="button" aria-label="Close search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </button>
+      <input type="text" id="overlayInput" placeholder="Tell us what to need to source" autocomplete="off">
+      <button class="overlay-go" id="overlayGo" type="button" aria-label="Search" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+    </div>
+    <div class="search-suggestions" id="searchSuggestions"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var appShell = document.getElementById('appShell');
+  var landingWrap = document.getElementById('landingWrap');
+  var landingPills = document.getElementById('landingPills');
+  var feed = document.getElementById('feed');
+  var composerWrap = document.getElementById('composerWrap');
+  var composerInput = document.getElementById('composerInput');
+  var sendBtn = document.getElementById('sendBtn');
+  var headerAction = document.getElementById('headerAction');
+  var qaPanel = document.getElementById('qaPanel');
+  var qaPanelCount = document.getElementById('qaPanelCount');
+  var qaProgressFill = document.getElementById('qaProgressFill');
+  var qaPanelLabel = document.getElementById('qaPanelLabel');
+  var qaPanelQuestion = document.getElementById('qaPanelQuestion');
+  var qaPanelOptions = document.getElementById('qaPanelOptions');
+  var qaNextBtn = document.getElementById('qaNextBtn');
+  var qaPrevBtn = document.getElementById('qaPrevBtn');
+  var qaPanelClose = document.getElementById('qaPanelClose');
+  var searchOverlay = document.getElementById('searchOverlay');
+  var overlayInput = document.getElementById('overlayInput');
+  var overlayBack = document.getElementById('overlayBack');
+  var overlayGo = document.getElementById('overlayGo');
+  var searchSuggestions = document.getElementById('searchSuggestions');
+  var feedbackBar = document.getElementById('feedbackBar');
+  var feedbackText = document.getElementById('feedbackText');
+  var feedbackUp = document.getElementById('feedbackUp');
+  var feedbackDown = document.getElementById('feedbackDown');
+  var feedbackPopupOverlay = document.getElementById('feedbackPopupOverlay');
+  var feedbackPopupChips = document.getElementById('feedbackPopupChips');
+  var feedbackPopupClose = document.getElementById('feedbackPopupClose');
+  var feedbackPopupSubmit = document.getElementById('feedbackPopupSubmit');
+
+  // ---------- keep the composer above the mobile keyboard ----------
+  function setAppHeight(){
+    var h = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
+    document.documentElement.style.setProperty('--app-vh', (h * 0.01) + 'px');
+  }
+  setAppHeight();
+  window.addEventListener('resize', setAppHeight);
+  if (window.visualViewport){
+    window.visualViewport.addEventListener('resize', setAppHeight);
+    window.visualViewport.addEventListener('scroll', setAppHeight);
+  }
+
+  var state = {
+    stage: 'awaiting_query',   // awaiting_query | qa | done
+    query: '',
+    answers: {},
+    qIndex: 0
+  };
+
+  var defaultQuestionBank = [
+    { key:'quantity', label:'Quantity', question:'', type:'quantity', units:['Units','Boxes','Kg','Tons'] },
+    { key:'location', label:'Supplier location', question:'Where should I look for suppliers?', options:[
+      { title:'Near my city' },
+      { title:'Anywhere in my state' },
+      { title:'Anywhere in India' },
+      { title:'No preference' }
+    ]},
+    { key:'timeline', label:'Delivery timeline', question:'When do you need this by?', options:[
+      { title:'Urgent, within a week' },
+      { title:'Within a month' },
+      { title:'Flexible, planning ahead' },
+      { title:'Just exploring for now' }
+    ]}
+  ];
+  var activeQuestionBank = defaultQuestionBank;
+  var lastMcatId = null;
+  var capturedQuantity = '';
+  var capturedQuantityUnit = '';
+
+  // ---------- live spec fetch: mcatid lookup -> ISQ spec wrapper ----------
+  function slugify(str){
+    return (str || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'spec';
+  }
+
+  function fetchJSON(url){
+    return fetch(url, { method: 'GET' }).then(function(res){
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    });
+  }
+
+  function getMcatId(term){
+    var url = 'https://apps.imimg.com/models/mcatid-suggestion.php?search_param=' + encodeURIComponent(term) + '&modid=MY';
+    return fetchJSON(url);
+  }
+
+  function getSpecs(mcatid){
+    // cat_type and the remaining query params are fixed per the integration contract
+    var url = 'https://apps.imimg.com/index.php?r=Newreqform/GetIsq&modid=MY&mcatid=' + encodeURIComponent(mcatid) +
+      '&cat_type=3&flag=1&isq_format=1&generic_flag=1&country_iso=IN';
+    return fetchJSON(url);
+  }
+
+  function buildQuestionsFromSpecData(json){
+    if (!json || json.STATUS !== '1' || !json.DATA) return null;
+    // DATA mixes bare spec objects with occasional nested arrays (e.g. Quantity + Quantity Unit
+    // travel together) — flatten one level so every spec sits at the top, in server sort order.
+    var flat = [];
+    json.DATA.forEach(function(item){
+      if (Array.isArray(item)) flat = flat.concat(item);
+      else flat.push(item);
+    });
+
+    var questions = [];
+    for (var i = 0; i < flat.length; i++){
+      var spec = flat[i];
+      var type = spec.IM_SPEC_MASTER_TYPE;
+      var desc = spec.IM_SPEC_MASTER_DESC || 'Spec';
+
+      if (type === '1'){
+        // free-text / numeric field — pull in the very next spec as its unit picker, if it's one
+        var unitsSpec = flat[i + 1];
+        var units = ['Units'];
+        if (unitsSpec && unitsSpec.IM_SPEC_MASTER_TYPE === '3' && unitsSpec.IM_SPEC_OPTIONS_DESC){
+          units = unitsSpec.IM_SPEC_OPTIONS_DESC.split('##').filter(Boolean);
+          i += 1; // consumed the paired unit spec
+        }
+        questions.push({
+          key: slugify(desc),
+          label: desc,
+          question: '',
+          type: 'quantity',
+          units: units
+        });
+      } else if ((type === '2' || type === '3') && spec.IM_SPEC_OPTIONS_DESC && spec.IM_SPEC_OPTIONS_DESC !== 'None'){
+        var opts = spec.IM_SPEC_OPTIONS_DESC.split('##').filter(Boolean).map(function(t){ return { title: t }; });
+        if (opts.length){
+          questions.push({
+            key: slugify(desc),
+            label: desc,
+            question: '',
+            options: opts
+          });
+        }
+      }
+    }
+    return questions.length ? questions : null;
+  }
+
+  function loadQuestionsForTerm(term){
+    activeQuestionBank = defaultQuestionBank;
+    var usedLive = false;
+    lastMcatId = null;
+    return getMcatId(term)
+      .then(function(idData){
+        if (!idData || !idData.mcatid) throw new Error('No mcatid match');
+        lastMcatId = idData.mcatid;
+        return getSpecs(idData.mcatid);
+      })
+      .then(function(specData){
+        var built = buildQuestionsFromSpecData(specData);
+        if (built){
+          activeQuestionBank = built;
+          usedLive = true;
+        }
+      })
+      .catch(function(err){
+        // Network/CORS failure or no catalog match — fall back to the generic question set
+        // so the flow still completes.
+        console.warn('Live spec fetch failed, using default questions:', err);
+        activeQuestionBank = defaultQuestionBank;
+      })
+      .then(function(){
+        return usedLive;
+      });
+  }
+
+  var trendingSearches = [
+    'Industrial submersible pumps',
+    'Corrugated packaging boxes',
+    'LED flood lights, bulk',
+    'PPE safety kits',
+    'Stainless steel pipes',
+    'Raw materials for my factory'
+  ];
+
+  var suggestionBank = [
+    'Industrial submersible pumps', 'Centrifugal water pumps', 'Corrugated packaging boxes',
+    'Bubble wrap rolls', 'LED flood lights, bulk', 'LED street lights', 'PPE safety kits',
+    'Safety helmets and gloves', 'Stainless steel pipes', 'Stainless steel sheets',
+    'Industrial machinery', 'CNC machines', 'Packaging materials', 'Custom manufacturing',
+    'Raw materials for my factory', 'Electrical components', 'Construction materials',
+    'HDPE plastic granules', 'Industrial conveyor belts', 'Solar panels, commercial',
+    'Fire safety equipment', 'Cotton fabric rolls', 'Printed labels and stickers',
+    'Warehouse racking systems', 'Water treatment plants', 'Diesel generators'
+  ];
+
+  // ---------- mobile fullscreen search overlay ----------
+  function isMobileView(){
+    return !window.matchMedia('(min-width: 768px)').matches;
+  }
+
+  function suggestionIconSvg(){
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>';
+  }
+
+  function renderSuggestions(query){
+    query = (query || '').trim().toLowerCase();
+    searchSuggestions.innerHTML = '';
+
+    var label = document.createElement('div');
+    label.className = 'suggestion-label';
+    label.textContent = query ? 'Suggestions' : 'Trending searches';
+    searchSuggestions.appendChild(label);
+
+    var source = query ? suggestionBank.filter(function(s){ return s.toLowerCase().indexOf(query) !== -1; }) : trendingSearches;
+    var list = source.slice(0, 8);
+
+    if (list.length === 0){
+      var empty = document.createElement('div');
+      empty.className = 'suggestion-empty';
+      empty.textContent = "No matches — press enter to search anyway";
+      searchSuggestions.appendChild(empty);
+      return;
+    }
+
+    list.forEach(function(text){
+      var row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'suggestion-row';
+      row.innerHTML = '<span class="suggestion-icon">' + suggestionIconSvg() + '</span><span>' + escapeHtml(text) + '</span>';
+      row.addEventListener('click', function(){
+        closeSearchOverlay();
+        submitQuery(text);
+      });
+      searchSuggestions.appendChild(row);
+    });
+  }
+
+  function openSearchOverlay(){
+    overlayInput.value = composerInput.value || '';
+    renderSuggestions(overlayInput.value);
+    overlayGo.disabled = !overlayInput.value.trim();
+    searchOverlay.hidden = false;
+    overlayInput.focus();
+  }
+
+  function closeSearchOverlay(){
+    searchOverlay.hidden = true;
+    composerInput.value = overlayInput.value;
+    sendBtn.classList.toggle('has-text', composerInput.value.trim().length > 0);
+    sendBtn.disabled = composerInput.value.trim().length === 0;
+    overlayInput.blur();
+  }
+
+  function submitFromOverlay(){
+    var val = overlayInput.value.trim();
+    if (!val) return;
+    closeSearchOverlay();
+    submitQuery(val);
+  }
+
+  function syncComposerReadonly(){
+    composerInput.readOnly = isMobileView() && state.stage === 'awaiting_query';
+  }
+
+  composerInput.addEventListener('click', function(){
+    if (isMobileView() && state.stage === 'awaiting_query'){
+      openSearchOverlay();
+    }
+  });
+  overlayBack.addEventListener('click', function(){
+    closeSearchOverlay();
+  });
+  overlayGo.addEventListener('click', function(){
+    submitFromOverlay();
+  });
+  overlayInput.addEventListener('input', function(){
+    renderSuggestions(overlayInput.value);
+    overlayGo.disabled = !overlayInput.value.trim();
+  });
+  overlayInput.addEventListener('keydown', function(e){
+    if (e.key === 'Enter'){
+      submitFromOverlay();
+    } else if (e.key === 'Escape'){
+      closeSearchOverlay();
+    }
+  });
+  window.addEventListener('resize', syncComposerReadonly);
+
+  // ---------- rendering helpers ----------
+  function resetSendState(){
+    sendBtn.classList.remove('has-text');
+    sendBtn.disabled = true;
+  }
+
+  function scrollDown(){
+    requestAnimationFrame(function(){ feed.scrollTop = feed.scrollHeight; });
+  }
+
+  function aiAvatarSvg(){
+    return '<img src="https://companieslogo.com/img/orig/INDIAMART.NS-ecf147e0.png?t=1720244492" alt="IndiaMART" loading="lazy">';
+  }
+
+  function addUserBubble(text){
+    var row = document.createElement('div');
+    row.className = 'row from-user';
+    row.innerHTML = '<div class="bubble-stack"><div class="bubble">' + escapeHtml(text) + '</div></div>';
+    feed.appendChild(row);
+    scrollDown();
+  }
+
+  var reqCardSpecsEl = null;
+  function createRequirementCard(term){
+    var row = document.createElement('div');
+    row.className = 'row from-user';
+    var stack = document.createElement('div');
+    stack.className = 'bubble-stack';
+    var bubble = document.createElement('div');
+    bubble.className = 'bubble req-card-bubble';
+    bubble.innerHTML =
+      '<div class="req-card-photo">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="1.7"/><path d="M21 15l-5-5-9 9"/></svg>' +
+      '</div>' +
+      '<div class="req-card-name">' + escapeHtml(capitalize(term)) + '</div>' +
+      '<div class="req-card-specs"></div>';
+    stack.appendChild(bubble);
+    row.appendChild(stack);
+    feed.appendChild(row);
+    reqCardSpecsEl = bubble.querySelector('.req-card-specs');
+    scrollDown();
+  }
+
+  function addRequirementSpec(label, value){
+    if (!reqCardSpecsEl) return;
+    var line = document.createElement('div');
+    line.className = 'req-card-spec';
+    line.innerHTML = '<span class="k">' + escapeHtml(label) + '</span><span class="v">' + escapeHtml(value) + '</span>';
+    reqCardSpecsEl.appendChild(line);
+    scrollDown();
+  }
+
+  function addAiTyping(callback, delay){
+    var row = document.createElement('div');
+    row.className = 'row from-ai';
+    row.innerHTML = '<div class="avatar">' + aiAvatarSvg() + '</div><div class="bubble-stack"><div class="bubble typing-bubble"><i></i><i></i><i></i></div></div>';
+    feed.appendChild(row);
+    scrollDown();
+    setTimeout(function(){
+      row.remove();
+      callback();
+    }, delay || 700);
+  }
+
+  function addAiBubble(text){
+    var row = document.createElement('div');
+    row.className = 'row from-ai';
+    row.innerHTML = '<div class="avatar">' + aiAvatarSvg() + '</div><div class="bubble-stack"><div class="bubble">' + text + '</div></div>';
+    feed.appendChild(row);
+    scrollDown();
+  }
+
+  var qaSelected = null; // { title, desc } currently selected in the open panel
+
+  function renderQuestionPanel(){
+    var q = activeQuestionBank[state.qIndex];
+    var total = activeQuestionBank.length;
+    qaSelected = null;
+
+    qaPanelCount.textContent = '· Question ' + (state.qIndex + 1) + ' of ' + total;
+    qaProgressFill.style.width = Math.round(((state.qIndex + 1) / total) * 100) + '%';
+    qaPanelLabel.textContent = q.label;
+    qaPanelQuestion.textContent = q.question;
+    qaPanelOptions.innerHTML = '';
+    qaPrevBtn.hidden = state.qIndex === 0;
+
+    if (q.type === 'quantity'){
+      var qtyRow = document.createElement('div');
+      qtyRow.className = 'qa-qty-row';
+
+      var qtyInput = document.createElement('input');
+      qtyInput.type = 'text';
+      qtyInput.inputMode = 'numeric';
+      qtyInput.className = 'qa-qty-input';
+      qtyInput.placeholder = 'Enter quantity';
+
+      var unitRow = document.createElement('div');
+      unitRow.className = 'qa-unit-pills';
+      var selectedUnit = q.units[0];
+      capturedQuantityUnit = selectedUnit;
+
+      function updateQtySelection(){
+        var digitsOnly = qtyInput.value.replace(/[^0-9]/g, '');
+        if (digitsOnly !== qtyInput.value) qtyInput.value = digitsOnly;
+        capturedQuantity = digitsOnly;
+        capturedQuantityUnit = selectedUnit;
+        qaSelected = digitsOnly ? (digitsOnly + ' ' + selectedUnit) : null;
+      }
+
+      q.units.forEach(function(unit, i){
+        var pill = document.createElement('button');
+        pill.type = 'button';
+        pill.className = 'qa-unit-pill' + (i === 0 ? ' selected' : '');
+        pill.textContent = unit;
+        pill.addEventListener('click', function(){
+          unitRow.querySelectorAll('.qa-unit-pill').forEach(function(p){ p.classList.remove('selected'); });
+          pill.classList.add('selected');
+          selectedUnit = unit;
+          updateQtySelection();
+        });
+        unitRow.appendChild(pill);
+      });
+
+      qtyInput.addEventListener('input', updateQtySelection);
+
+      qtyRow.appendChild(qtyInput);
+      qtyRow.appendChild(unitRow);
+      qaPanelOptions.appendChild(qtyRow);
+
+      qaPanel.hidden = false;
+      composerWrap.hidden = true;
+      setTimeout(function(){ qtyInput.focus(); }, 50);
+      return;
+    }
+
+    q.options.forEach(function(opt){
+      var card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'qa-option-card';
+      card.innerHTML = '<span class="qa-option-radio"></span><span class="qa-option-title">' + escapeHtml(opt.title) + '</span>';
+      card.addEventListener('click', function(){
+        qaPanelOptions.querySelectorAll('.qa-option-card').forEach(function(c){ c.classList.remove('selected'); });
+        card.classList.add('selected');
+        qaSelected = opt.title;
+        // auto-progress: brief pause so the selection is visible, then move on
+        setTimeout(function(){
+          if (qaSelected === opt.title) advanceFromPanel();
+        }, 320);
+      });
+      qaPanelOptions.appendChild(card);
+    });
+
+    qaPanel.hidden = false;
+    composerWrap.hidden = true;
+  }
+
+  qaPrevBtn.addEventListener('click', function(){
+    if (state.qIndex === 0) return;
+    state.qIndex -= 1;
+    renderQuestionPanel();
+  });
+
+  function advanceFromPanel(){
+    var q = activeQuestionBank[state.qIndex];
+    var answerText = qaSelected || 'Skipped';
+    state.answers[q.key] = answerText;
+    if (answerText !== 'Skipped') addRequirementSpec(q.label, answerText);
+    if (state.qIndex < activeQuestionBank.length - 1){
+      state.qIndex += 1;
+      renderQuestionPanel(); // instant swap — panel never hides, so nothing collapses/reflows
+    } else {
+      qaPanel.hidden = true;
+      addAiTyping(function(){ finishRequirement(); }, 900);
+    }
+  }
+
+  qaNextBtn.addEventListener('click', function(){
+    advanceFromPanel();
+  });
+
+  qaPanelClose.addEventListener('click', function(){
+    init();
+  });
+
+  function escapeHtml(str){
+    var d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
+  function capitalize(str){
+    if (!str) return '';
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  }
+
+  // ---------- keep composer above the mobile keyboard (no animation, just layout) ----------
+  composerInput.addEventListener('focus', function(){
+    setAppHeight();
+  });
+  composerInput.addEventListener('blur', function(){
+    setAppHeight();
+  });
+
+  // ---------- conversation flow ----------
+  function init(){
+    appShell.classList.add('landing');
+    landingWrap.hidden = false;
+    landingWrap.appendChild(composerWrap);
+    composerWrap.hidden = false;
+    qaPanel.hidden = true;
+    feedbackBar.hidden = true;
+    feedbackPopupOverlay.hidden = true;
+    feed.hidden = true;
+    feed.innerHTML = '';
+    headerAction.hidden = true;
+    composerInput.placeholder = 'Tell us what to need to source';
+    syncComposerReadonly();
+  }
+
+  function enterConversation(){
+    appShell.classList.remove('landing');
+    landingWrap.hidden = true;
+    appShell.appendChild(composerWrap);
+    feed.hidden = false;
+    headerAction.hidden = false;
+    syncComposerReadonly();
+  }
+
+  function submitQuery(term){
+    term = (term || '').trim();
+    if (!term) return;
+    if (feed.hidden){ enterConversation(); }
+    state.query = term;
+    state.answers = {};
+    state.qIndex = 0;
+    state.stage = 'qa';
+    capturedQuantity = '';
+    capturedQuantityUnit = '';
+    addUserBubble(term);
+    composerInput.value = '';
+    resetSendState();
+    composerInput.blur();
+    composerInput.disabled = true;
+    composerInput.placeholder = 'Tap an option above to continue…';
+    composerWrap.hidden = true;
+
+    addAiTyping(function(){
+      addAiBubble('Help us find the right match');
+      createRequirementCard(term);
+      loadQuestionsForTerm(term).then(function(){
+        addAiTyping(function(){ renderQuestionPanel(); }, 500);
+      });
+    }, 750);
+  }
+
+  function finishRequirement(){
+    state.stage = 'done';
+    startFindBestMatch();
+  }
+
+  // ================= Job Creation / Polling / Seller Carousel =================
+
+  // ---------- Job Creation API ----------
+  function extractJobId(data){
+    if (typeof data === 'string' && data.trim()) return data.trim();
+    if (!data || typeof data !== 'object') return null;
+    var keys = ['job_id', 'jobId', 'job', 'id', 'data'];
+    for (var i = 0; i < keys.length; i++){
+      var v = data[keys[i]];
+      if (typeof v === 'string' && v.trim()) return v.trim();
+      if (typeof v === 'number') return String(v);
+      if (v && typeof v === 'object'){
+        var nested = extractJobId(v);
+        if (nested) return nested;
+      }
+    }
+    return null;
+  }
+
+  function buildSpecificationsPayload(){
+    var specs = [];
+    activeQuestionBank.forEach(function(q){
+      if (q.type === 'quantity') return; // sent separately as quantity/quantity_unit
+      var ans = state.answers[q.key];
+      if (!ans || ans === 'Skipped') return; // only specs the user actually selected
+      specs.push({ question: q.label, answer: ans });
+    });
+    return specs;
+  }
+
+  function createSearchJob(){
+    var payload = {
+      offer_id: '',
+      keyword: state.query,
+      mcat_id: lastMcatId || '',
+      mcat_name: state.query, // no name-resolution endpoint available downstream
+      buyer_city_id: '1',
+      buyer_city: 'Noida',
+      city_id: '70751',
+      city_match: 'exact',
+      quantity: capturedQuantity || '',
+      quantity_unit: capturedQuantityUnit || '',
+      specifications: buildSpecificationsPayload()
+    };
+
+    return fetch('https://buyer.indiamart.com/miscreact/ajaxrequest/buyermy/curatedsellersearch/windmill', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(function(res){
+      return res.text();
+    }).then(function(text){
+      var data;
+      try { data = JSON.parse(text); } catch (e){ data = text; }
+      var jobId = extractJobId(data);
+      if (!jobId) throw new Error('No job id in Job Creation response');
+      return jobId;
+    });
+  }
+
+  // ---------- Job Status polling ----------
+  function extractSellers(data){
+    var sellerKeys = ['final_ranked_sellers', 'ranked_sellers', 'data', 'result', 'results', 'sellers', 'cards', 'items'];
+    function search(obj, depth){
+      if (!obj || typeof obj !== 'object') return null;
+      for (var i = 0; i < sellerKeys.length; i++){
+        var v = obj[sellerKeys[i]];
+        if (Array.isArray(v)) return v;
+      }
+      if (depth < 1){
+        for (var j = 0; j < sellerKeys.length; j++){
+          var v2 = obj[sellerKeys[j]];
+          if (v2 && typeof v2 === 'object'){
+            var found = search(v2, depth + 1);
+            if (found) return found;
+          }
+        }
+      }
+      return null;
+    }
+    return search(data, 0);
+  }
+
+  function isFailureStatus(data){
+    if (!data) return false;
+    if (data.success === false) return true;
+    var s = String(data.status || data.job_status || data.state || '').toLowerCase();
+    return ['failed', 'error', 'cancelled'].indexOf(s) !== -1;
+  }
+
+  function pollJobStatus(jobId, onTick){
+    var delays = [5000, 10000, 20000, 20000, 20000, 20000, 20000, 20000, 20000, 20000]; // up to 10 attempts
+    var attempt = 0;
+    var startedAt = Date.now();
+
+    return new Promise(function(resolve, reject){
+      function tick(){
+        if (onTick) onTick(attempt, Date.now() - startedAt);
+      }
+      function doPoll(){
+        fetch('https://buyer.indiamart.com/miscreact/ajaxrequest/buyermy/curatedsellersearch/windmill/status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ job_id: jobId })
+        }).then(function(res){
+          return res.text();
+        }).then(function(text){
+          var data = null;
+          try { data = JSON.parse(text); } catch (e){ /* leave null, treated as not-yet-ready */ }
+          attempt++;
+          tick();
+
+          if (data && data.completed === true){
+            resolve(extractSellers(data) || []);
+            return;
+          }
+          var sellers = data ? extractSellers(data) : null;
+          if (sellers && sellers.length){
+            resolve(sellers);
+            return;
+          }
+          if (isFailureStatus(data)){
+            reject(new Error('Job reported failure'));
+            return;
+          }
+          scheduleNext();
+        }).catch(function(){
+          attempt++;
+          scheduleNext();
+        });
+      }
+      function scheduleNext(){
+        if (attempt >= delays.length){
+          reject(new Error('Polling timed out'));
+          return;
+        }
+        setTimeout(doPoll, delays[attempt]);
+      }
+      doPoll();
+    });
+  }
+
+  // ---------- seller card field mapping ----------
+  function getSellerRank(s){
+    if (s.rank !== undefined && s.rank !== null && s.rank !== '') return Number(s.rank);
+    if (s.final_rank !== undefined && s.final_rank !== null && s.final_rank !== '') return Number(s.final_rank);
+    if (s.rank_position !== undefined && s.rank_position !== null && s.rank_position !== '') return Number(s.rank_position);
+    return Infinity;
+  }
+
+  function formatMemberSince(val){
+    if (val === null || val === undefined) return null;
+    var str = String(val).trim();
+    if (!str) return null;
+    if (/\byrs?\b/i.test(str)) return str; // duration string — use as-is
+    var d = new Date(str);
+    if (!isNaN(d.getTime())) return 'Member since ' + d.getFullYear();
+    return str; // unrecognized format — show raw rather than hide
+  }
+
+  function truthy(v){
+    if (v === true) return true;
+    if (v === false || v === null || v === undefined) return false;
+    var s = String(v).trim().toLowerCase();
+    return s === '1' || s === 'true' || s === 'yes';
+  }
+
+  function buildSellerCard(s, isBest){
+    var card = document.createElement('div');
+    card.className = 'seller-card-v2';
+
+    var photo = document.createElement('div');
+    photo.className = 'seller-card-photo';
+    if (isBest){
+      var badge = document.createElement('span');
+      badge.className = 'seller-card-badge';
+      badge.textContent = 'Best Overall';
+      photo.appendChild(badge);
+    }
+    if (s.image){
+      var img = document.createElement('img');
+      img.src = s.image;
+      img.alt = s.companyname || 'Seller';
+      img.loading = 'lazy';
+      photo.appendChild(img);
+    }
+    card.appendChild(photo);
+
+    var body = document.createElement('div');
+    body.className = 'seller-card-body';
+
+    var name = document.createElement('div');
+    name.className = 'seller-card-name';
+    name.textContent = s.companyname || 'Supplier';
+    body.appendChild(name);
+
+    if (s.price_formatted){
+      var price = document.createElement('div');
+      price.className = 'seller-card-price';
+      price.textContent = s.price_formatted;
+      body.appendChild(price);
+    }
+
+    if (s.city){
+      var cityRow = document.createElement('div');
+      cityRow.className = 'seller-card-meta-row';
+      cityRow.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-7.58 7-12.5A7 7 0 0 0 5 9.5C5 14.42 12 22 12 22z"/><circle cx="12" cy="9.5" r="2.3"/></svg><span>' + escapeHtml(s.city) + '</span>';
+      body.appendChild(cityRow);
+    }
+
+    var memberText = formatMemberSince(s.memberSince);
+    if (memberText){
+      var memberRow = document.createElement('div');
+      memberRow.className = 'seller-card-meta-row';
+      memberRow.textContent = memberText;
+      body.appendChild(memberRow);
+    }
+
+    var ratingVal = (s.supplier_rating !== null && s.supplier_rating !== undefined) ? s.supplier_rating : s.rating;
+    if (ratingVal !== null && ratingVal !== undefined && ratingVal !== ''){
+      var ratingRow = document.createElement('div');
+      ratingRow.className = 'seller-card-rating';
+      var countText = (s.rating_count !== null && s.rating_count !== undefined && s.rating_count !== '') ? ' <span>(' + escapeHtml(String(s.rating_count)) + ')</span>' : '';
+      ratingRow.innerHTML = '★ ' + escapeHtml(String(ratingVal)) + countText;
+      body.appendChild(ratingRow);
+    }
+
+    var badgesRow = document.createElement('div');
+    badgesRow.className = 'seller-card-badges';
+    var anyBadge = false;
+
+    if (truthy(s.gst_verified)){
+      var gstTag = document.createElement('span');
+      gstTag.className = 'seller-card-tag gst';
+      gstTag.textContent = '✓ GST Verified';
+      badgesRow.appendChild(gstTag);
+      anyBadge = true;
+    }
+    if (Number(s.CustTypeWt) >= 199){
+      var trustTag = document.createElement('span');
+      trustTag.className = 'seller-card-tag trust';
+      trustTag.textContent = 'TrustSEAL';
+      badgesRow.appendChild(trustTag);
+      anyBadge = true;
+    }
+    if (s.trustseal === true){
+      var protTag = document.createElement('span');
+      protTag.className = 'seller-card-tag protected';
+      protTag.textContent = 'Payment Protected';
+      badgesRow.appendChild(protTag);
+      anyBadge = true;
+    }
+    if (anyBadge) body.appendChild(badgesRow);
+
+    card.appendChild(body);
+
+    var footer = document.createElement('div');
+    footer.className = 'seller-card-footer';
+
+    var priceBtn = document.createElement('button');
+    priceBtn.type = 'button';
+    priceBtn.className = 'seller-card-cta primary';
+    priceBtn.textContent = 'Get Best Price';
+    footer.appendChild(priceBtn);
+
+    var callBtn = document.createElement('button');
+    callBtn.type = 'button';
+    callBtn.className = 'seller-card-cta secondary';
+    callBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg><span>Call Now</span>';
+    footer.appendChild(callBtn);
+
+    card.appendChild(footer);
+    return card;
+  }
+
+  function renderSellerCarousel(sellers){
+    var sorted = sellers.slice().sort(function(a, b){ return getSellerRank(a) - getSellerRank(b); });
+
+    var header = document.createElement('div');
+    header.className = 'seller-carousel-header';
+    if (sorted.length){
+      header.innerHTML =
+        '<div class="seller-carousel-eyebrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/></svg>Curated for you</div>' +
+        '<div class="seller-carousel-title">Best matches from verified sellers</div>';
+    } else {
+      header.innerHTML = '<div class="seller-carousel-title">No matching sellers found right now</div>';
+    }
+    feed.appendChild(header);
+
+    if (!sorted.length) return;
+
+    var wrap = document.createElement('div');
+    wrap.className = 'seller-carousel-wrap';
+    var track = document.createElement('div');
+    track.className = 'seller-carousel';
+    sorted.forEach(function(s, i){
+      var rank = getSellerRank(s);
+      track.appendChild(buildSellerCard(s, rank === 1));
+    });
+    wrap.appendChild(track);
+    feed.appendChild(wrap);
+    scrollDown();
+    showFeedbackBar();
+  }
+
+  // ---------- results feedback (thumbs up/down) ----------
+  var feedbackOptions = [
+    'Wrong category matched',
+    'Prices too high',
+    'Not enough seller options',
+    'Sellers not verified enough',
+    'Wrong location match',
+    "Specs didn't match my requirement"
+  ];
+  var selectedFeedbackChips = [];
+
+  function showFeedbackBar(){
+    composerWrap.hidden = true;
+    feedbackBar.hidden = false;
+    feedbackText.textContent = 'Are the results relevant?';
+    feedbackUp.disabled = false;
+    feedbackDown.disabled = false;
+    feedbackUp.classList.remove('picked-up');
+    feedbackDown.classList.remove('picked-down');
+  }
+
+  function lockFeedbackBar(message, pickedClass, btn){
+    feedbackText.textContent = message;
+    feedbackUp.disabled = true;
+    feedbackDown.disabled = true;
+    if (btn && pickedClass) btn.classList.add(pickedClass);
+  }
+
+  feedbackUp.addEventListener('click', function(){
+    lockFeedbackBar('Thanks for the feedback!', 'picked-up', feedbackUp);
+  });
+
+  feedbackDown.addEventListener('click', function(){
+    openFeedbackPopup();
+  });
+
+  function openFeedbackPopup(){
+    selectedFeedbackChips = [];
+    feedbackPopupChips.innerHTML = '';
+    feedbackOptions.forEach(function(opt){
+      var chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'feedback-chip';
+      chip.textContent = opt;
+      chip.addEventListener('click', function(){
+        var idx = selectedFeedbackChips.indexOf(opt);
+        if (idx === -1){
+          selectedFeedbackChips.push(opt);
+          chip.classList.add('selected');
+        } else {
+          selectedFeedbackChips.splice(idx, 1);
+          chip.classList.remove('selected');
+        }
+        feedbackPopupSubmit.disabled = selectedFeedbackChips.length === 0;
+      });
+      feedbackPopupChips.appendChild(chip);
+    });
+    feedbackPopupSubmit.disabled = true;
+    feedbackPopupOverlay.hidden = false;
+  }
+
+  function closeFeedbackPopup(){
+    feedbackPopupOverlay.hidden = true;
+  }
+
+  feedbackPopupClose.addEventListener('click', closeFeedbackPopup);
+  feedbackPopupOverlay.addEventListener('click', function(e){
+    if (e.target === feedbackPopupOverlay) closeFeedbackPopup();
+  });
+  feedbackPopupSubmit.addEventListener('click', function(){
+    console.log('Feedback submitted:', selectedFeedbackChips);
+    closeFeedbackPopup();
+    lockFeedbackBar("Thanks, we'll use this to improve.", 'picked-down', feedbackDown);
+  });
+
+  // ---------- loading + error states ----------
+  var loadingStages = [
+    { text: 'Matching your requirement', icon: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/>' },
+    { text: 'Scanning verified sellers', icon: '<path d="M12 2 4 5v6c0 5 3.4 9 8 11 4.6-2 8-6 8-11V5z"/><path d="m9 12 2 2 4-4"/>' },
+    { text: 'Comparing prices and ratings', icon: '<path d="M12 3v18"/><path d="M5 8l-3 6a3.5 3.5 0 0 0 6 0z"/><path d="M19 8l-3 6a3.5 3.5 0 0 0 6 0z"/><path d="M5 8h14"/><path d="M9 20h6"/>' },
+    { text: 'Ranking your best matches', icon: '<path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0Z"/><path d="M7 6H4a1 1 0 0 0-1 1c0 2.5 1.8 4.5 4 5"/><path d="M17 6h3a1 1 0 0 1 1 1c0 2.5-1.8 4.5-4 5"/>' }
+  ];
+
+  function showSearchLoading(){
+    var card = document.createElement('div');
+    card.className = 'search-loading-card';
+    card.innerHTML =
+      '<div class="loading-top-row">' +
+        '<div class="loading-visual"><div class="loading-ring"></div>' +
+        '<svg id="searchLoadingIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + loadingStages[0].icon + '</svg></div>' +
+        '<div class="search-loading-title" id="searchLoadingTitle">' + loadingStages[0].text + '</div>' +
+      '</div>' +
+      '<div class="loading-steps" id="loadingSteps"></div>';
+    feed.appendChild(card);
+
+    var stepsRow = card.querySelector('#loadingSteps');
+    loadingStages.forEach(function(){
+      var dot = document.createElement('div');
+      dot.className = 'loading-step-dot';
+      dot.innerHTML = '<i></i>';
+      stepsRow.appendChild(dot);
+    });
+    var dots = stepsRow.querySelectorAll('.loading-step-dot');
+    dots[0].classList.add('active');
+
+    scrollDown();
+
+    var titleEl = card.querySelector('#searchLoadingTitle');
+    var iconEl = card.querySelector('#searchLoadingIcon');
+    var currentStage = 0;
+
+    // advances to a real stage as actual API progress happens — never loops,
+    // never goes backward, and stays put on a stage until the next real event fires
+    card._setStage = function(index){
+      index = Math.max(currentStage, Math.min(loadingStages.length - 1, index));
+      if (index === currentStage) return;
+
+      for (var i = 0; i < dots.length; i++){
+        dots[i].classList.remove('active');
+        if (i < index) dots[i].classList.add('done');
+      }
+      dots[index].classList.add('active');
+      currentStage = index;
+
+      titleEl.style.opacity = '0';
+      iconEl.style.opacity = '0';
+      iconEl.style.transform = 'scale(0.6)';
+      setTimeout(function(){
+        titleEl.textContent = loadingStages[currentStage].text;
+        iconEl.innerHTML = loadingStages[currentStage].icon;
+        titleEl.style.opacity = '1';
+        iconEl.style.opacity = '1';
+        iconEl.style.transform = 'scale(1)';
+      }, 220);
+    };
+
+    return card;
+  }
+
+  function showSearchError(message, onRetry){
+    var card = document.createElement('div');
+    card.className = 'search-error-card';
+    card.innerHTML = '<div class="search-error-text">' + escapeHtml(message) + '</div>';
+    var retry = document.createElement('button');
+    retry.className = 'search-retry-btn';
+    retry.type = 'button';
+    retry.textContent = 'Try again';
+    retry.addEventListener('click', function(){
+      card.remove();
+      onRetry();
+    });
+    card.appendChild(retry);
+    feed.appendChild(card);
+    scrollDown();
+  }
+
+  function startFindBestMatch(){
+    var loadingCard = showSearchLoading();
+
+    createSearchJob()
+      .then(function(jobId){
+        loadingCard._setStage(1); // job created — now actually scanning sellers
+        return pollJobStatus(jobId, function(attempt){
+          // each real poll round that comes back without a result moves the
+          // loader forward one real stage (capped at the final stage)
+          loadingCard._setStage(Math.min(loadingStages.length - 1, 1 + attempt));
+        });
+      })
+      .then(function(sellers){
+        loadingCard._setStage(loadingStages.length - 1);
+        loadingCard.remove();
+        renderSellerCarousel(sellers || []);
+      })
+      .catch(function(err){
+        console.warn('Find Best Match failed:', err);
+        loadingCard.remove();
+        showSearchError("Couldn't fetch matching sellers right now — please try again.", function(){
+          startFindBestMatch();
+        });
+      });
+  }
+
+  function handleSend(){
+    var val = composerInput.value.trim();
+    if (!val || composerInput.disabled) return;
+    if (state.stage === 'awaiting_query'){
+      submitQuery(val);
+    }
+  }
+
+  composerInput.addEventListener('keydown', function(e){
+    if (e.key === 'Enter') handleSend();
+  });
+  composerInput.addEventListener('input', function(){
+    var has = composerInput.value.trim().length > 0;
+    sendBtn.classList.toggle('has-text', has);
+    sendBtn.disabled = !has;
+  });
+  sendBtn.addEventListener('click', handleSend);
+
+  landingPills.addEventListener('click', function(e){
+    var btn = e.target.closest('.landing-pill');
+    if (!btn) return;
+    submitQuery(btn.dataset.q);
+  });
+
+  headerAction.addEventListener('click', function(){
+    state = { stage:'awaiting_query', query:'', answers:{}, qIndex:0 };
+    composerInput.disabled = false;
+    composerInput.value = '';
+    resetSendState();
+    init();
+  });
+
+  init();
+})();
+</script>
+
+</body>
+</html>
